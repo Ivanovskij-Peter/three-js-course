@@ -19,10 +19,8 @@ const App = () => {
   camera.lookAt(new THREE.Vector3(0, 0, 0));
 
   const clock = new THREE.Clock();
-
-  const particleGeo = new THREE.BufferGeometry();
-
-  const particleMat = new THREE.PointsMaterial({
+  const pGeom = new THREE.BufferGeometry();
+  const pMat = new THREE.PointsMaterial({
     color: "rgb(255, 255, 255)",
     size: 1,
     map: new THREE.TextureLoader().load(texture),
@@ -30,69 +28,63 @@ const App = () => {
     blending: THREE.AdditiveBlending,
     depthWrite: false,
   });
-
-  const particleCount = 100000;
-  const particleDistance = 500;
-  const arr = [];
-  const newArr = [];
-  newArr.push(arr);
-
-  for (let i = 0; i < particleCount; i++) {
-    const posX = (Math.random() - 0.5) * particleDistance;
-    const posY = (Math.random() - 0.5) * particleDistance;
-    const posZ = (Math.random() - 0.5) * particleDistance;
-    // const particle = new THREE.Vector3(posX, posY, posZ);
-    arr.push(posX, posY, posZ);
+  const pCount = 20000;
+  const pDistance = 100;
+  const positions = new THREE.BufferAttribute(new Float32Array(pCount * 3), 3);
+  for (let i = 0; i < pCount; i++) {
+    positions.setXYZ(
+      i,
+      (Math.random() - 0.5) * pDistance,
+      (Math.random() - 0.5) * pDistance,
+      (Math.random() - 0.5) * pDistance
+    );
   }
-
-  particleGeo.setAttribute(
-    "position",
-    new THREE.Float32BufferAttribute(Array.from(arr), 3)
-  );
-
-  const particleSystem = new THREE.Points(particleGeo, particleMat);
-  particleSystem.name = "particleSystem";
-
+  pGeom.setAttribute("position", positions);
+  pGeom.name = "pGeom";
+  const particleSystem = new THREE.Points(pGeom, pMat);
   scene.add(particleSystem);
+
+  function start() {
+    const positionAttribute = particleSystem.geometry.getAttribute("position");
+
+    particleSystem.rotation.y += 0.001;
+
+    const vertex = new THREE.Vector3();
+
+    for (var i = 0; i < positionAttribute.count; i++) {
+      vertex.fromBufferAttribute(positionAttribute, i);
+      vertex.x += (Math.random() - 1) * 0.1;
+      vertex.y += (Math.random() - 0.75) * 0.1;
+      vertex.z += Math.random() * 0.1;
+
+      if (vertex.x < -50) {
+        vertex.x = 50;
+      }
+
+      if (vertex.y < -50) {
+        vertex.y = 50;
+      }
+
+      if (vertex.z < -50) {
+        vertex.z = 50;
+      }
+
+      if (vertex.z > 50) {
+        vertex.z = -50;
+      }
+
+      positionAttribute.setXYZ(i, vertex.x, vertex.y, vertex.z);
+    }
+
+    positionAttribute.needsUpdate = true;
+  }
 
   function update(renderer, scene, camera, controls, clock) {
     renderer.render(scene, camera);
 
     controls.update();
 
-    const particleSystem = scene.getObjectByName("particleSystem");
-    particleSystem.rotation.y += 0.001;
-    particleSystem.rotation.x += 0.001;
-
-    // console.log(particleSystem.geometry.getAttribute("position"));
-
-    // const arr = particleSystem.geometry.attributes.position.array;
-    // const point = new THREE.Vector3();
-
-    // for (let i = 0; i < arr; i++) {
-    //   point.fromBufferAttribute(arr, i);
-    //   const key = [point.x, point.y, point.z].join(",");
-    //   key[0] = (Math.random() - 1) * 0.1;
-    //   key[1] = (Math.random() - 0.75) * 0.1;
-    //   key[2] = Math.random() * 0.1;
-
-    //   particleSystem.geometry.attributes.position.array.setXYZ(
-    //     key[0],
-    //     key[1],
-    //     key[2]
-    //   );
-    // }
-
-    //   if (particle.x < 50) {
-    //     particle.x = 50;
-    //   }
-    //   if (particle.y < 50) {
-    //     particle.y = 50;
-    //   }
-    //   if (particle.z < 50) {
-    //     particle.z = 50;
-    //   }
-    // });
+    start();
 
     requestAnimationFrame(() => {
       update(renderer, scene, camera, controls, clock);
